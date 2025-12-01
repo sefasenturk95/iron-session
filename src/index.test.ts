@@ -529,15 +529,15 @@ await test("should enable chunking when configured", async () => {
   session.user = { id: 1, meta: largeData };
   await session.save();
 
-  const allCookies = collectAllCookies(res);
+  const allCookies = collectAllCookies(res as any);
 
   // Should create multiple chunked cookies (at least 2 chunks + 1 delete for main cookie)
   equal(allCookies.length >= 2, true);
   // Check chunk naming pattern
   const chunkCookies = allCookies.filter(c => /^test\.\d+=/.test(c));
   equal(chunkCookies.length >= 2, true);
-  match(chunkCookies[0], /^test\.0=/);
-  match(chunkCookies[1], /^test\.1=/);
+  match(chunkCookies[0]!, /^test\.0=/);
+  match(chunkCookies[1]!, /^test\.1=/);
 
   mock.reset();
 });
@@ -557,11 +557,11 @@ await test("should reconstruct session from chunked cookies", async () => {
   session.user = { id: 2, meta: largeData };
   await session.save();
 
-  const allCookies = collectAllCookies(res);
+  const allCookies = collectAllCookies(res as any);
   const chunkCookies = allCookies.filter(c => /^test\.\d+=/.test(c));
 
   // Build cookie header with all chunks
-  const cookieHeader = chunkCookies.map((c: string) => c.split(";")[0]).join("; ");
+  const cookieHeader = chunkCookies.map((c: string) => c.split(";")[0]!).join("; ");
 
   // Read session back - should reconstruct from chunks
   const req = { headers: { cookie: cookieHeader } } as IncomingMessage;
@@ -592,11 +592,11 @@ await test("should use single cookie when data is small with chunking enabled", 
   session.user = { id: 3 }; // Small data
   await session.save();
 
-  const allCookies = collectAllCookies(res);
+  const allCookies = collectAllCookies(res as any);
   // Should use single cookie for small data
   equal(allCookies.length, 1);
-  match(allCookies[0], /^test=/); // Not chunked
-  doesNotMatch(allCookies[0], /^test\.0=/); // No chunk suffix
+  match(allCookies[0]!, /^test=/); // Not chunked
+  doesNotMatch(allCookies[0]!, /^test\.0=/); // No chunk suffix
 
   mock.reset();
 });
@@ -618,12 +618,12 @@ await test("should clean up old chunks when updating session", async () => {
   session.user = { id: 4, meta: largeData };
   await session.save();
 
-  const firstCookies = collectAllCookies(res);
+  const firstCookies = collectAllCookies(res as any);
   const firstChunkCookies = firstCookies.filter(c => /^test\.\d+=/.test(c));
   const firstChunkCount = firstChunkCookies.length;
 
   // Build cookie header
-  const cookieHeader = firstChunkCookies.map((c: string) => c.split(";")[0]).join("; ");
+  const cookieHeader = firstChunkCookies.map((c: string) => c.split(";")[0]!).join("; ");
 
   // Reset mock and update getHeader to return existing cookies
   res = { getHeader: mock.fn(() => []), setHeader: mock.fn() };
@@ -638,13 +638,13 @@ await test("should clean up old chunks when updating session", async () => {
   session.user = { id: 5 }; // Small data now
   await session.save();
 
-  const secondCookies = collectAllCookies(res);
+  const secondCookies = collectAllCookies(res as any);
 
   // Should have cleanup cookies (maxAge=0) for old chunks plus the new single cookie
   equal(secondCookies.length, firstChunkCount + 1);
   // Old chunks should be deleted (maxAge=0)
   for (let i = 0; i < firstChunkCount; i++) {
-    match(secondCookies[i], /Max-Age=0/);
+    match(secondCookies[i]!, /Max-Age=0/);
   }
 
   mock.reset();
@@ -667,12 +667,12 @@ await test("should destroy all chunks on session destroy", async () => {
   session.user = { id: 6, meta: largeData };
   await session.save();
 
-  const saveCookies = collectAllCookies(res);
+  const saveCookies = collectAllCookies(res as any);
   const saveChunkCookies = saveCookies.filter(c => /^test\.\d+=/.test(c));
   const chunkCount = saveChunkCookies.length;
 
   // Build cookie header
-  const cookieHeader = saveChunkCookies.map((c: string) => c.split(";")[0]).join("; ");
+  const cookieHeader = saveChunkCookies.map((c: string) => c.split(";")[0]!).join("; ");
 
   // Reset mock
   res = { getHeader: mock.fn(() => []), setHeader: mock.fn() };
@@ -686,13 +686,13 @@ await test("should destroy all chunks on session destroy", async () => {
   });
   session.destroy();
 
-  const destroyCookies = collectAllCookies(res);
+  const destroyCookies = collectAllCookies(res as any);
 
   // Should delete main cookie + all chunks
   equal(destroyCookies.length, chunkCount + 1);
   // All should have maxAge=0
   for (const cookie of destroyCookies) {
-    match(cookie, /Max-Age=0/);
+    match(cookie!, /Max-Age=0/);
   }
 
   mock.reset();
@@ -714,7 +714,7 @@ await test("should respect custom chunk size", async () => {
   session.user = { id: 7, meta: mediumData };
   await session.save();
 
-  const allCookies = collectAllCookies(res);
+  const allCookies = collectAllCookies(res as any);
   const chunkCookies = allCookies.filter(c => /^test\.\d+=/.test(c));
   // With 2000 byte chunks, 3000 bytes of data should create multiple chunks
   equal(chunkCookies.length > 1, true);
